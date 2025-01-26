@@ -1,0 +1,17 @@
+{
+    "short_name": "Evidence Nálezů",
+    "name": "Evidence Nálezů",
+    "description": "",
+    "icons": [
+        {
+            "src": "logo.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        }
+    ],
+    "start_url": "./index.php",
+    "display": "standalone",
+    "orientation": "portrait",
+    "theme_color": "#191e24",
+    "background_color": "#ffffff"
+}
