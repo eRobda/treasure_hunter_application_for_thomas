@@ -17,7 +17,7 @@ $nalezy = get_nalezy(); // Fetch the array of findings
     <link rel="manifest" href="manifest.json">
 </head>
 
-<body class="p-5">
+<body class="p-5 mb-20">
     <div class="text-3xl font-bold">Moje nálezy</div>
     <label class="input input-bordered flex items-center gap-2 mt-5">
         <input type="text" id="searchInput" class="grow" placeholder="Hledat..." />
@@ -50,52 +50,121 @@ $nalezy = get_nalezy(); // Fetch the array of findings
 
         const nalezyContainer = document.getElementById('nalezyContainer');
         const searchInput = document.getElementById('searchInput');
+        // Function to format dates into "Dnes", "Včera", or "dd. mm. yyyy"
+// Function to parse the custom date format (dd. mm. yyyy HH:MM:SS)
+function parseCustomDate(dateStr) {
+    const parts = dateStr.split(' '); // Split the date and time parts
+    const dateParts = parts[0].split('.'); // Split the date by "."
+    const timeParts = parts[1].split(':'); // Split the time by ":"
 
-        // Function to render items
-        function renderNalezy(items) {
-            nalezyContainer.innerHTML = ''; // Clear previous items
-            items.forEach(nalez => {
-                const card = document.createElement('a');
-                card.href = `details.php?id=${nalez.id}`;
-                card.className = 'card bg-base-100 w-full shadow-xl';
+    // The date format is dd. mm. yyyy, so adjust the parts:
+    const day = parseInt(dateParts[0], 10);
+    const month = parseInt(dateParts[1], 10) - 1; // JavaScript months are 0-indexed
+    const year = parseInt(dateParts[2], 10);
 
-                card.innerHTML = `
-                    <div class="card-body">
-                        <h2 class="card-title">${escapeHTML(nalez.nazev)}</h2>
-                        <p>${escapeHTML(nalez.popis)}</p>
-                        <div class="card-actions justify-end">
-                            <div class="badge badge-outline">${escapeHTML(nalez.typ)}</div>
-                            <div class="badge badge-outline">${escapeHTML(nalez.material)}</div>
-                        </div>
+    // The time format is HH:MM:SS
+    const hours = parseInt(timeParts[0], 10);
+    const minutes = parseInt(timeParts[1], 10);
+    const seconds = parseInt(timeParts[2], 10);
+
+    // Return a new Date object
+    return new Date(year, month, day, hours, minutes, seconds);
+}
+
+// Function to format dates into "Dnes", "Včera", or "dd. mm. yyyy"
+function formatDate(datum) {
+    const today = new Date();
+    const itemDate = parseCustomDate(datum); // Use the custom parser for datum
+
+    // Calculate difference in days
+    const differenceInDays = Math.floor((today - itemDate) / (1000 * 60 * 60 * 24));
+
+    if (differenceInDays === 0) {
+        return "Dnes";
+    } else if (differenceInDays === 1) {
+        return "Včera";
+    } else {
+        return itemDate.toLocaleDateString('cs-CZ', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+}
+
+// Function to group items by date
+function groupByDate(items) {
+    const grouped = {};
+    items.forEach(item => {
+        const groupKey = formatDate(item.datum); // Format the date
+        if (!grouped[groupKey]) {
+            grouped[groupKey] = [];
+        }
+        grouped[groupKey].push(item);
+    });
+    return grouped;
+}
+
+// Function to render grouped items with dividers
+function renderNalezyGrouped(items) {
+    nalezyContainer.innerHTML = ''; // Clear previous items
+
+    const groupedItems = groupByDate(items);
+
+    Object.keys(groupedItems).forEach(groupKey => {
+        // Create a divider for the group
+        const divider = document.createElement('div');
+        divider.className = 'divider';
+        divider.textContent = groupKey;
+        nalezyContainer.appendChild(divider);
+
+        // Create and append items for the group
+        groupedItems[groupKey].forEach(nalez => {
+            const card = document.createElement('a');
+            card.href = `details.php?id=${nalez.id}`;
+            card.className = 'card bg-base-100 w-full shadow-xl';
+
+            card.innerHTML = `
+                <div class="card-body">
+                    <h2 class="card-title">${escapeHTML(nalez.nazev)}</h2>
+                    <p>${escapeHTML(nalez.popis)}</p>
+                    <div class="card-actions justify-end">
+                        <div class="badge badge-outline">${escapeHTML(nalez.typ)}</div>
+                        <div class="badge badge-outline">${escapeHTML(nalez.material)}</div>
                     </div>
-                `;
-                nalezyContainer.appendChild(card);
-            });
-        }
-
-        // Escape HTML to prevent XSS
-        function escapeHTML(str) {
-            return str.replace(/&/g, '&amp;')
-                      .replace(/</g, '&lt;')
-                      .replace(/>/g, '&gt;')
-                      .replace(/"/g, '&quot;')
-                      .replace(/'/g, '&#039;');
-        }
-
-        // Initial render
-        renderNalezy(nalezy);
-
-        // Filter items based on search input
-        searchInput.addEventListener('input', () => {
-            const searchTerm = searchInput.value.toLowerCase();
-            const filteredNalezy = nalezy.filter(nalez =>
-                nalez.nazev.toLowerCase().includes(searchTerm) ||
-                nalez.popis.toLowerCase().includes(searchTerm) ||
-                nalez.typ.toLowerCase().includes(searchTerm) ||
-                nalez.material.toLowerCase().includes(searchTerm)
-            );
-            renderNalezy(filteredNalezy);
+                </div>
+            `;
+            nalezyContainer.appendChild(card);
         });
+    });
+}
+
+// Escape HTML to prevent XSS
+function escapeHTML(str) {
+    if (typeof str !== 'string') return '';
+    return str.replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;')
+              .replace(/"/g, '&quot;')
+              .replace(/'/g, '&#039;');
+}
+
+// Initial grouped render
+try {
+    renderNalezyGrouped(nalezy);
+} catch (error) {
+    console.error("Error rendering items:", error);
+}
+
+// Filter items based on search input
+searchInput.addEventListener('input', () => {
+    const searchTerm = searchInput.value.toLowerCase();
+    const filteredNalezy = nalezy.filter(nalez =>
+        nalez.nazev.toLowerCase().includes(searchTerm) ||
+        nalez.popis.toLowerCase().includes(searchTerm) ||
+        nalez.typ.toLowerCase().includes(searchTerm) ||
+        nalez.material.toLowerCase().includes(searchTerm)
+    );
+    renderNalezyGrouped(filteredNalezy);
+});
+
+
     </script>
 </body>
 
