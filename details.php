@@ -39,14 +39,14 @@ $nalez = get_nalez_by_id($id);
             <p><b>Popis:</b> <?php echo $nalez["popis"]; ?></p>
             <p><b>Datum:</b> <?php echo $nalez["datum"]; ?></p>
             <?php
-                $polohaY = explode(":", $nalez["poloha"])[0];
-                $polohaX = explode(":", $nalez["poloha"])[1];
+                $polohaY = explode(",", $nalez["poloha"])[0];
+                $polohaX = explode(",", $nalez["poloha"])[1];
             ?>
             <p><b>Poloha:</b> <a class="link link-primary" href="https://mapy.cz/zakladni?source=coor&id=15.8102428640037%2C50.43248096709127&ds=1&x=<?php echo $polohaX ?>&y=<?php echo $polohaY ?>&z=18"><?php echo $nalez["poloha"]; ?></a></p>
             <p><b>Typ:</b> <?php echo $nalez["typ"]; ?></p>
             <p><b>Materiál:</b> <?php echo $nalez["material"]; ?></p>
         </div>
-    </div>
+    </div>  
     <img class="w-full rounded-xl mt-3" src="<?php echo $nalez["foto_url"] ?>">
     <div class="mt-5">
         <a href="index.php" class="btn btn-primary w-full" onclick="OnLoading()">Zpět</a>
