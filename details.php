@@ -38,7 +38,11 @@ $nalez = get_nalez_by_id($id);
             </h2>
             <p><b>Popis:</b> <?php echo $nalez["popis"]; ?></p>
             <p><b>Datum:</b> <?php echo $nalez["datum"]; ?></p>
-            <p><b>Poloha:</b> <?php echo $nalez["poloha"]; ?></p>
+            <?php
+                $polohaY = explode(":", $nalez["poloha"])[0];
+                $polohaX = explode(":", $nalez["poloha"])[1];
+            ?>
+            <p><b>Poloha:</b> <a class="link link-primary" href="https://mapy.cz/zakladni?source=coor&id=15.8102428640037%2C50.43248096709127&ds=1&x=<?php echo $polohaX ?>&y=<?php echo $polohaY ?>&z=18"><?php echo $nalez["poloha"]; ?></a></p>
             <p><b>Typ:</b> <?php echo $nalez["typ"]; ?></p>
             <p><b>Materiál:</b> <?php echo $nalez["material"]; ?></p>
         </div>
