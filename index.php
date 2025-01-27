@@ -51,6 +51,7 @@ $nalezy = get_nalezy(); // Fetch the array of findings
     <script>
         // Pass the PHP data to JavaScript
         const nalezy = <?php echo json_encode($nalezy, JSON_HEX_TAG); ?>;
+        console.log(nalezy);
 
         const nalezyContainer = document.getElementById('nalezyContainer');
         const searchInput = document.getElementById('searchInput');
@@ -69,17 +70,30 @@ $nalezy = get_nalezy(); // Fetch the array of findings
         function parseCustomDate(datum) {
             if (!datum) return null;
 
-            const regex = /^(\d{1,2})\. (\d{1,2})\. (\d{4}) (\d{2}):(\d{2}):(\d{2})$/;
-            const match = datum.match(regex);
+            // Log the raw input
+            console.log("Raw datum:", datum);
 
-            if (match) {
-                const [day, month, year, hours, minutes, seconds] = match.slice(1).map(Number);
-                console.log(day, month, year, hours, minutes, seconds);
-                return new Date(year, month - 1, day, hours, minutes, seconds); // Month is 0-indexed
-            }
+            // Normalize all whitespace characters
+            const normalizedDatum = datum.replace(/\s+/g, ' ').trim();
+            console.log("Normalized datum:", normalizedDatum);
 
-            return null;
+            // Split into date and time parts
+            const parts = normalizedDatum.split(' '); // Log the split result
+            parts[0] = parts[0].replace(/\./g, '');
+            parts[1] = parts[1].replace(/\./g, '');
+            console.log("Split parts:", parts);
+
+            const hours = parts[3].split(':');
+
+            // Construct and return the Date object
+            const parsedDate = new Date(parts[2], parts[1] - 1, parts[0], hours[0], hours[1], hours[2]);
+            console.log("Parsed date object:", parsedDate);
+            return parsedDate;
         }
+
+
+
+
 
         function calculateDaysDifference(date1, date2) {
             const startOfDay1 = new Date(date1.getFullYear(), date1.getMonth(), date1.getDate());
