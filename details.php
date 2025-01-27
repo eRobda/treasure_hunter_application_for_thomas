@@ -26,9 +26,9 @@ $nalez = get_nalez_by_id($id);
 </head>
 
 <body class="p-5">
-    <div class="fixed top-0 left-0 w-full h-full bg-black z-30 bg-opacity-50 flex items-center justify-center hidden"
-        id="loading">
-        <span class="loading loading-spinner loading-lg invert z-20"></span>
+<div class="fixed top-0 left-0 w-full h-full bg-black z-10 bg-opacity-50 flex flex-col gap-2 items-center justify-center hidden" id="loading">
+        <span class="loading loading-spinner loading-lg z-20 brightness-[200]"></span>
+        <span class="text-white">Načítání...</span>
     </div>
     <div class="text-3xl font-bold">Detaily Nálezu</div>
     <div class="card bg-base-100 w-full shadow-xl mt-5">
