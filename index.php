@@ -18,6 +18,10 @@ $nalezy = get_nalezy(); // Fetch the array of findings
 </head>
 
 <body class="p-5 mb-20">
+    <div class="fixed top-0 left-0 w-full h-full bg-black z-10 bg-opacity-50 flex items-center justify-center hidden"
+        id="loading">
+        <span class="loading loading-spinner loading-lg invert z-20"></span>
+    </div>
     <div class="text-3xl font-bold">Moje nálezy</div>
     <label class="input input-bordered flex items-center gap-2 mt-5">
         <input type="text" id="searchInput" class="grow" placeholder="Hledat..." />
@@ -50,77 +54,115 @@ $nalezy = get_nalezy(); // Fetch the array of findings
 
         const nalezyContainer = document.getElementById('nalezyContainer');
         const searchInput = document.getElementById('searchInput');
-        // Function to format dates into "Dnes", "Včera", or "dd. mm. yyyy"
-// Function to parse the custom date format (dd. mm. yyyy HH:MM:SS)
-function parseCustomDate(dateStr) {
-    const parts = dateStr.split(' '); // Split the date and time parts
-    const dateParts = parts[0].split('.'); // Split the date by "."
-    const timeParts = parts[1].split(':'); // Split the time by ":"
 
-    // The date format is dd. mm. yyyy, so adjust the parts:
-    const day = parseInt(dateParts[0], 10);
-    const month = parseInt(dateParts[1], 10) - 1; // JavaScript months are 0-indexed
-    const year = parseInt(dateParts[2], 10);
-
-    // The time format is HH:MM:SS
-    const hours = parseInt(timeParts[0], 10);
-    const minutes = parseInt(timeParts[1], 10);
-    const seconds = parseInt(timeParts[2], 10);
-
-    // Return a new Date object
-    return new Date(year, month, day, hours, minutes, seconds);
-}
-
-// Function to format dates into "Dnes", "Včera", or "dd. mm. yyyy"
-function formatDate(datum) {
-    const today = new Date();
-    const itemDate = parseCustomDate(datum); // Use the custom parser for datum
-
-    // Calculate difference in days
-    const differenceInDays = Math.floor((today - itemDate) / (1000 * 60 * 60 * 24));
-
-    if (differenceInDays === 0) {
-        return "Dnes";
-    } else if (differenceInDays === 1) {
-        return "Včera";
-    } else {
-        return itemDate.toLocaleDateString('cs-CZ', { day: '2-digit', month: '2-digit', year: 'numeric' });
-    }
-}
-
-// Function to group items by date
-function groupByDate(items) {
-    const grouped = {};
-    items.forEach(item => {
-        const groupKey = formatDate(item.datum); // Format the date
-        if (!grouped[groupKey]) {
-            grouped[groupKey] = [];
+        // Function to escape HTML to prevent XSS
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
         }
-        grouped[groupKey].push(item);
-    });
-    return grouped;
-}
 
-// Function to render grouped items with dividers
-function renderNalezyGrouped(items) {
-    nalezyContainer.innerHTML = ''; // Clear previous items
+        // Function to parse date in the format '26. 1. 2025 23:32:26'
+        function parseCustomDate(datum) {
+            if (!datum) return null;
 
-    const groupedItems = groupByDate(items);
+            const regex = /^(\d{1,2})\. (\d{1,2})\. (\d{4}) (\d{2}):(\d{2}):(\d{2})$/;
+            const match = datum.match(regex);
 
-    Object.keys(groupedItems).forEach(groupKey => {
-        // Create a divider for the group
-        const divider = document.createElement('div');
-        divider.className = 'divider';
-        divider.textContent = groupKey;
-        nalezyContainer.appendChild(divider);
+            if (match) {
+                const [day, month, year, hours, minutes, seconds] = match.slice(1).map(Number);
+                console.log(day, month, year, hours, minutes, seconds);
+                return new Date(year, month - 1, day, hours, minutes, seconds); // Month is 0-indexed
+            }
 
-        // Create and append items for the group
-        groupedItems[groupKey].forEach(nalez => {
-            const card = document.createElement('a');
-            card.href = `details.php?id=${nalez.id}`;
-            card.className = 'card bg-base-100 w-full shadow-xl';
+            return null;
+        }
 
-            card.innerHTML = `
+        function calculateDaysDifference(date1, date2) {
+            const startOfDay1 = new Date(date1.getFullYear(), date1.getMonth(), date1.getDate());
+            const startOfDay2 = new Date(date2.getFullYear(), date2.getMonth(), date2.getDate());
+            return Math.floor((startOfDay1 - startOfDay2) / (1000 * 60 * 60 * 24));
+        }
+
+        // Function to format date based on calendar days
+        function formatDate(datum) {
+            const today = new Date();
+            const itemDate = parseCustomDate(datum);
+
+            if (!itemDate || isNaN(itemDate.getTime())) {
+                return 'Neznámé datum'; // Fallback for invalid date
+            }
+
+            // Calculate the calendar day difference
+            const differenceInDays = calculateDaysDifference(today, itemDate);
+
+            if (differenceInDays === 0) {
+                return "Dnes";
+            } else if (differenceInDays === 1) {
+                return "Včera";
+            } else {
+                return itemDate.toLocaleDateString('cs-CZ', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            }
+        }
+        // Function to group items by date
+        function groupByDate(items) {
+            const grouped = {};
+            items.forEach(item => {
+                const groupKey = formatDate(item.datum);
+                if (!grouped[groupKey]) {
+                    grouped[groupKey] = [];
+                }
+                grouped[groupKey].push(item);
+            });
+            return grouped;
+        }
+
+        function sortItemsByDate(items) {
+            return items.sort((a, b) => {
+                const dateA = parseCustomDate(a.datum);
+                const dateB = parseCustomDate(b.datum);
+
+                if (!dateA || isNaN(dateA.getTime())) return 1; // Push invalid dates to the end
+                if (!dateB || isNaN(dateB.getTime())) return -1; // Push invalid dates to the end
+
+                return dateB - dateA; // Newest items first
+            });
+        }
+
+        // Function to render grouped items with dividers
+        function renderNalezyGrouped(items) {
+            if (!nalezyContainer) {
+                console.error('Missing container element with ID "nalezyContainer".');
+                return;
+            }
+
+            nalezyContainer.innerHTML = ''; // Clear previous items
+
+            // Sort items by date (newest first) before grouping
+            const sortedItems = sortItemsByDate(items);
+
+            const groupedItems = groupByDate(sortedItems);
+
+            Object.keys(groupedItems).forEach(groupKey => {
+                // Create a divider for the group
+                const divider = document.createElement('div');
+                divider.className = 'divider';
+                divider.textContent = groupKey;
+                nalezyContainer.appendChild(divider);
+
+                // Create and append items for the group
+                groupedItems[groupKey].forEach(nalez => {
+                    const card = document.createElement('a');
+                    card.addEventListener("click", () => {
+                        document.getElementById('loading').classList.remove('hidden');
+                    });
+                    card.href = `details.php?id=${nalez.id}`;
+                    card.className = 'card bg-base-100 w-full shadow-xl';
+
+                    card.innerHTML = `
                 <div class="card-body">
                     <h2 class="card-title">${escapeHTML(nalez.nazev)}</h2>
                     <p>${escapeHTML(nalez.popis)}</p>
@@ -130,42 +172,37 @@ function renderNalezyGrouped(items) {
                     </div>
                 </div>
             `;
-            nalezyContainer.appendChild(card);
-        });
-    });
-}
+                    nalezyContainer.appendChild(card);
+                });
+            });
+        }
 
-// Escape HTML to prevent XSS
-function escapeHTML(str) {
-    if (typeof str !== 'string') return '';
-    return str.replace(/&/g, '&amp;')
-              .replace(/</g, '&lt;')
-              .replace(/>/g, '&gt;')
-              .replace(/"/g, '&quot;')
-              .replace(/'/g, '&#039;');
-}
+        // Initial grouped render
+        try {
+            renderNalezyGrouped(nalezy);
+        } catch (error) {
+            console.error("Error rendering items:", error);
+        }
 
-// Initial grouped render
-try {
-    renderNalezyGrouped(nalezy);
-} catch (error) {
-    console.error("Error rendering items:", error);
-}
-
-// Filter items based on search input
-searchInput.addEventListener('input', () => {
-    const searchTerm = searchInput.value.toLowerCase();
-    const filteredNalezy = nalezy.filter(nalez =>
-        nalez.nazev.toLowerCase().includes(searchTerm) ||
-        nalez.popis.toLowerCase().includes(searchTerm) ||
-        nalez.typ.toLowerCase().includes(searchTerm) ||
-        nalez.material.toLowerCase().includes(searchTerm)
-    );
-    renderNalezyGrouped(filteredNalezy);
-});
-
-
+        // Filter items based on search input
+        if (searchInput) {
+            searchInput.addEventListener('input', () => {
+                const searchTerm = searchInput.value.toLowerCase();
+                const filteredNalezy = nalezy.filter(nalez =>
+                    nalez.nazev.toLowerCase().includes(searchTerm) ||
+                    nalez.popis.toLowerCase().includes(searchTerm) ||
+                    nalez.typ.toLowerCase().includes(searchTerm) ||
+                    nalez.material.toLowerCase().includes(searchTerm)
+                );
+                renderNalezyGrouped(filteredNalezy);
+            });
+        } else {
+            console.error('Missing search input element with ID "searchInput".');
+        }
     </script>
+
+
+
 </body>
 
 </html>

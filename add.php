@@ -63,6 +63,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 </head>
 
 <body class="p-5">
+    <div class="fixed top-0 left-0 w-full h-full bg-black z-10 bg-opacity-50 flex items-center justify-center hidden" id="loading">
+        <span class="loading loading-spinner loading-lg invert z-20"></span>
+    </div>
     <div class="text-3xl font-bold mb-5">Přidat nález</div>
     <form method="POST" enctype="multipart/form-data" class="flex flex-col gap-3">
         <div class="flex flex-col gap-1">
@@ -99,7 +102,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </div>
         <input type="text" name="poloha" id="poloha" hidden />
         <input type="text" name="datum" id="datum" hidden />
-        <input type="submit" class="btn btn-primary w-full mt-5" value="Uložit" />
+        <input type="submit" class="btn btn-primary w-full mt-5" onclick="OnLoading()" value="Uložit" />
         <a href="index.php" class="btn btn-primary btn-outline w-full mb-20">Zpět</a>
     </form>
 
@@ -116,6 +119,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </a>
     </div>
     <script>
+        function OnLoading() {
+            document.getElementById('loading').classList.remove('hidden');
+        }
+
         const popis_input = document.getElementById('popis_input');
         const popis_value = document.getElementById('popis_value');
         popis_input.addEventListener('change', () => {
